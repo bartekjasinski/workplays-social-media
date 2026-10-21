@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""WorkPlays – szablony grafiki „Oferta tygodnia” (1080x1350, 4:5).
+"""WorkPlays – szablon grafiki „Oferta tygodnia” (1080x1350, 4:5).
+
+Domyślny (zatwierdzony) wariant: b – karta-bilet z akcentami bursztyn/koral/fiolet.
+Warianty a i c zostały jako alternatywy.
 
 Użycie:
-    python3 oferta_template.py --variant a|b|c --out plik.png [--json oferta.json]
-    (bez --json renderuje przykładową ofertę)
+    python3 oferta_template.py --json oferta.json --out plik.png [--all-formats] [--variant a|b|c]
+    (bez --json renderuje przykładową ofertę; --all-formats dodatkowo zapisuje
+     <plik>_4x5.png, <plik>_1x1.png (LinkedIn) i <plik>_9x16.png (TikTok/Stories))
 
 Dane oferty (JSON):
     {"title": "Texture Artist", "company": "Fool's Theory", "level": "Regular / Senior",
      "project": "The Witcher 3: Wild Hunt – Songs of the Past",
      "salary": "13 000 – 20 500 zł", "salary_note": "miesięcznie",
      "location": "Bielsko-Biała", "contract": "umowa na czas określony",
-     "tags": ["Substance", "ZBrush", "PBR"]}
+     "tags": ["Substance", "ZBrush", "PBR"],
+     "week_label": "tydzień 44"}      # opcjonalne, pokazuje się po prawej od plakietki
 """
 import argparse, json, math, os, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -449,7 +454,7 @@ def export_formats(img, base):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", default="a", choices=list(RENDERERS))
+    ap.add_argument("--variant", default="b", choices=list(RENDERERS))
     ap.add_argument("--out", default="oferta.png")
     ap.add_argument("--json")
     ap.add_argument("--all-formats", action="store_true")
