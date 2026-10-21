@@ -23,6 +23,9 @@ GREEN = (112, 238, 142)
 GREEN_DARK = (46, 160, 86)
 WHITE = (247, 248, 252)
 MUTED = (160, 172, 200)
+AMBER = (255, 196, 61)
+CORAL = (255, 122, 89)
+VIOLET = (154, 132, 255)
 FONT_DIR = "/usr/share/fonts/truetype/google-fonts"
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOGO = os.path.join(HERE, "logo_alpha.png")
@@ -238,7 +241,13 @@ def render_b(o, _card_h=None):
         # pierwszy przebieg tylko mierzy wysokość treści
         _, used = render_b(o, _card_h=0)
         return render_b(o, _card_h=used)
-    img = gradient_bg(glow=True)
+    img = gradient_bg(glow=False)
+    g = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(g)
+    gd.ellipse((W - 560, -460, W + 420, 520), fill=(255, 122, 89, 95))   # koralowa poświata
+    gd.ellipse((-420, H - 520, 460, H + 420), fill=(154, 132, 255, 85))  # fioletowa poświata
+    gd.ellipse((-200, -300, 600, 420), fill=(112, 238, 142, 45))         # zielona
+    img = Image.alpha_composite(img.convert("RGBA"), g.filter(ImageFilter.GaussianBlur(170)))
     img = diagonal_lines(img, color=(255, 255, 255, 14), step=120, width=1)
     d = ImageDraw.Draw(img)
     M = 64
@@ -249,19 +258,37 @@ def render_b(o, _card_h=None):
     # karta
     cx0, cy0, cx1 = M, 200, W - M
     cy1 = (cy0 + _card_h + 56) if _card_h else H - 120
-    cy1 = min(cy1, H - 120)
+    cy1 = int(min(cy1, H - 120))
     shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
     ImageDraw.Draw(shadow).rounded_rectangle((cx0 + 10, cy0 + 24, cx1 + 10, cy1 + 24), radius=36, fill=(0, 0, 0, 140))
     img = Image.alpha_composite(img, shadow.filter(ImageFilter.GaussianBlur(28)))
     d = ImageDraw.Draw(img)
     d = rrect(img, (cx0, cy0, cx1, cy1), 36, fill=NAVY2 + (255,), outline=(112, 238, 142, 110), width=2)
-    # zielony pasek
-    d.rounded_rectangle((cx0, cy0, cx0 + 18, cy1), radius=9, fill=GREEN)
-    d.rectangle((cx0 + 9, cy0, cx0 + 18, cy1), fill=GREEN)
+    # grzbiet karty: gradient zieleń → bursztyn → koral
+    spine = Image.new("RGBA", (18, cy1 - cy0), (0, 0, 0, 0))
+    sp = spine.load()
+    stops = [GREEN, AMBER, CORAL]
+    for yy in range(spine.height):
+        t = yy / (spine.height - 1) * (len(stops) - 1)
+        i = min(int(t), len(stops) - 2)
+        f = t - i
+        c = tuple(int(stops[i][k] + (stops[i + 1][k] - stops[i][k]) * f) for k in range(3)) + (255,)
+        for xx in range(18):
+            sp[xx, yy] = c
+    mask = Image.new("L", spine.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, 17, spine.height - 1), radius=9, fill=255)
+    ImageDraw.Draw(mask).rectangle((9, 0, 17, spine.height - 1), fill=255)
+    img.paste(spine, (cx0, cy0), mask)
+    d = ImageDraw.Draw(img)
 
     px = cx0 + 60
     # etykieta
-    pill(d, px, cy0 + 48, "OFERTA TYGODNIA", font(26, "ExtraBold"), fill=GREEN, fg=NAVY, pad_x=28, pad_y=12)
+    pill(d, px, cy0 + 48, "OFERTA TYGODNIA", font(26, "ExtraBold"), fill=AMBER, fg=NAVY, pad_x=28, pad_y=12)
+    # numer tygodnia / data po prawej
+    wk = o.get("week_label", "")
+    if wk:
+        wf = font(24, "Medium")
+        d.text((cx1 - 50 - text_w(d, wk, wf), cy0 + 60), wk, font=wf, fill=MUTED)
 
     y = cy0 + 150
     tf = fit_font(d, o["title"], cx1 - px - 50, 96, 52, "ExtraBold")
@@ -300,12 +327,15 @@ def render_b(o, _card_h=None):
     y += 64
     cf = font(24, "Medium")
     x = px
-    for s in [o["contract"]] + o.get("tags", [])[:3]:
+    chips = [(o["contract"], (255, 255, 255, 90), WHITE, None)] + [
+        (t, VIOLET + (0,), VIOLET, (154, 132, 255, 46)) for t in o.get("tags", [])[:3]
+    ]
+    for s, outline, fg, fill in chips:
         if not s:
             continue
         if x + text_w(d, s, cf) + 44 > cx1 - 60:
             break
-        w, h = pill(d, x, y, s, cf, fill=None, fg=WHITE, pad_x=22, pad_y=10, outline=(255, 255, 255, 90), img=img)
+        w, h = pill(d, x, y, s, cf, fill=fill, fg=fg, pad_x=22, pad_y=10, outline=outline, img=img)
         x += w + 12
     y += 60
     used = y - cy0
