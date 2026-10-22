@@ -367,6 +367,119 @@ def render_classic(o):
 RENDERERS["classic"] = render_classic
 
 
+
+# ------------------------------------------------------------------ ui (sprawdzona formuła: wersalikowy caption + rekwizyt-UI + oryginalna maskotka)
+def _grad(top=(20, 32, 70), bottom=(8, 12, 30)):
+    img = Image.new("RGB", (W, H), top)
+    px = img.load()
+    for y in range(H):
+        t = y / H
+        c = tuple(int(top[i] + (bottom[i] - top[i]) * t) for i in range(3))
+        for x in range(W):
+            px[x, y] = c
+    return img.convert("RGBA")
+
+
+def _card_lines(d, x, y, lines, width):
+    """lines: list of dicts {text, style: title|sub|chip|bullet|bullet_red|small}"""
+    for ln in lines:
+        st = ln.get("style", "bullet")
+        if st == "title":
+            f = font(44, "Bold"); d.text((x, y), ln["text"], font=f, fill=(20, 24, 40)); y += 58
+        elif st == "sub":
+            f = font(26, "Medium"); d.text((x, y), ln["text"], font=f, fill=(110, 118, 140)); y += 40
+        elif st == "chips":
+            cx = x
+            for ch in ln["chips"]:
+                f = font(24, "Medium")
+                tw = text_w(d, ch["text"], f)
+                fill = GREEN if ch.get("green") else (236, 239, 246)
+                d.rounded_rectangle((cx, y, cx + tw + 36, y + 46), radius=12, fill=fill)
+                d.text((cx + 18, y + 9), ch["text"], font=f, fill=(20, 24, 40))
+                cx += tw + 36 + 14
+            y += 66
+        elif st == "head":
+            f = font(30, "Bold"); d.text((x, y), ln["text"], font=f, fill=(20, 24, 40)); y += 46
+        elif st in ("bullet", "bullet_red"):
+            f = font(27, "Regular")
+            txt = "•  " + ln["text"]
+            lines2 = wrap(d, txt, f, width - 20)
+            y0 = y
+            for l2 in lines2:
+                d.text((x, y), l2, font=f, fill=(30, 34, 50)); y += 38
+            if st == "bullet_red":
+                tw = max(text_w(d, l2, f) for l2 in lines2)
+                d.ellipse((x - 14, y0 - 10, x + min(tw, width - 20) + 14, y + 4), outline=(228, 48, 48), width=5)
+            y += 4
+        elif st == "small":
+            f = font(22, "Regular"); d.text((x, y), ln["text"], font=f, fill=(140, 146, 165)); y += 32
+    return y
+
+
+def render_ui(o):
+    img = _grad()
+    d = ImageDraw.Draw(img)
+    # caption – wersaliki, bold, wyśrodkowany
+    cap = o["caption"].upper()
+    f = fit(d, cap, W - 100, 60, 40, 4, lambda s: font(s, "Bold"))
+    y = 64
+    for ln in wrap(d, cap, f, W - 100):
+        d.text(((W - text_w(d, ln, f)) // 2, y), ln, font=f, fill=WHITE)
+        y += int(f.size * 1.2)
+    y += 40
+    # rekwizyt: karta UI
+    card = o.get("card")
+    if card:
+        cw = card.get("width", 780)
+        cx = card.get("x", 70)
+        pad = 40
+        # zmierz wysokość
+        tmp = Image.new("RGBA", (cw, 1200)); td = ImageDraw.Draw(tmp)
+        ch = _card_lines(td, pad, pad, card["lines"], cw - 2 * pad) + pad
+        box = Image.new("RGBA", (cw, ch), (250, 250, 252, 255))
+        bd = ImageDraw.Draw(box)
+        if card.get("notification"):
+            # awatar z literą po lewej
+            bd.ellipse((pad, pad, pad + 70, pad + 70), fill=GREEN)
+            bd.text((pad + 22, pad + 14), card["notification"], font=font(36, "Bold"), fill=(20, 24, 40))
+            _card_lines(bd, pad + 95, pad + 2, card["lines"], cw - 2 * pad - 95)
+        else:
+            _card_lines(bd, pad, pad, card["lines"], cw - 2 * pad)
+        mask = Image.new("L", box.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, cw - 1, ch - 1), radius=28, fill=255)
+        sh = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(sh).rounded_rectangle((cx + 8, y + 16, cx + cw + 8, y + ch + 16), radius=28, fill=(0, 0, 0, 120))
+        img = Image.alpha_composite(img, sh.filter(ImageFilter.GaussianBlur(18)))
+        img.paste(box, (cx, y), mask)
+        card_bottom = y + ch
+    else:
+        card_bottom = y
+    # maskotka – oryginalny asset
+    m = o["mascot"]
+    a = Image.open(m["image"]).convert("RGBA")
+    if m.get("flip"):
+        a = a.transpose(Image.FLIP_LEFT_RIGHT)
+    mh = int(m.get("height", 620))
+    a = a.resize((round(a.width * mh / a.height), mh), Image.LANCZOS)
+    mx = int(W * m.get("x", 0.78) - a.width / 2)
+    my = H - a.height - m.get("bottom", 70)
+    img.alpha_composite(a, (mx, my))
+    d = ImageDraw.Draw(img)
+    # pasek debug na dole (opcjonalnie)
+    if o.get("debug"):
+        d.rectangle((0, H - 70, W, H), fill=(14, 16, 24))
+        f1 = font(28, "Bold"); f2 = font(28, "Regular")
+        d.text((40, H - 52), "[Debug]:", font=f1, fill=(255, 92, 92))
+        d.text((40 + text_w(d, "[Debug]: ", f1), H - 52), o["debug"], font=f2, fill=WHITE)
+    # workplays.it
+    f = font(26, "SemiBold")
+    d.text((W - 50 - text_w(d, "workplays.it", f), H - (108 if o.get("debug") else 48)), "workplays.it", font=f, fill=GREEN)
+    return img
+
+
+RENDERERS["ui"] = render_ui
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", required=True)
@@ -378,6 +491,8 @@ if __name__ == "__main__":
     for k in ("image",):
         if o.get(k) and not os.path.isabs(o[k]):
             o[k] = os.path.join(base, o[k])
+    if o.get("mascot") and not os.path.isabs(o["mascot"]["image"]):
+        o["mascot"]["image"] = os.path.join(base, o["mascot"]["image"])
     for p in o.get("panels", []) + o.get("chars", []):
         if not os.path.isabs(p["image"]):
             p["image"] = os.path.join(base, p["image"])
