@@ -274,6 +274,99 @@ def render_chat(o):
 
 RENDERERS = {"scene": render_scene, "panels": render_panels, "chat": render_chat}
 
+
+# ------------------------------------------------------------------ classic (styl WorkPlays v1, bez przerabiania postaci)
+EMOJI_FONT = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
+
+
+def emoji_img(ch, size):
+    """Renderuje emoji (Noto Color Emoji ma stały rozmiar 109 px, więc skalujemy)."""
+    f = ImageFont.truetype(EMOJI_FONT, 109)
+    im = Image.new("RGBA", (140, 140), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((8, 8), ch, font=f, embedded_color=True)
+    bb = im.getbbox()
+    im = im.crop(bb) if bb else im
+    r = size / max(im.size)
+    return im.resize((max(1, round(im.width * r)), max(1, round(im.height * r))), Image.LANCZOS)
+
+
+def render_classic(o):
+    """Ciemne tło, caption u góry (Poppins, biały, zielone wyróżnienia w {nawiasach}),
+    biała karta z zieloną obwódką, w niej 1–2 ORYGINALNE assety + opcjonalne emoji-rekwizyty.
+    JSON: {"mode":"classic","caption":"Kiedy ... {workplays.it}","chars":[{"image":"...png","scale":1.0,"x":0.5,"flip":false}],
+           "props":[{"emoji":"☕","size":140,"x":0.72,"y":0.78}], "caption2": "...", "card_bg":[250,250,250]}"""
+    img = Image.new("RGBA", (W, H), (18, 18, 20, 255))
+    d = ImageDraw.Draw(img)
+    # caption – jak w memach v1: zwykły biały Poppins, fragmenty w {} na zielono
+    f = font(50, "Medium")
+    raw = o["caption"]
+    tokens = []
+    for part in raw.replace("}", "{").split("{"):
+        tokens.append(part)
+    # proste łamanie z kolorowaniem
+    x, y, lh = 60, 60, 66
+    green = False
+    for ti, part in enumerate(tokens):
+        for word in part.split(" "):
+            if not word:
+                continue
+            ww = text_w(d, word + " ", f)
+            if x + ww > W - 60:
+                x, y = 60, y + lh
+            d.text((x, y), word, font=f, fill=GREEN if green else WHITE)
+            x += ww
+        green = not green
+    y += lh
+    if o.get("caption2"):
+        y += 30
+        x = 60
+        for word in o["caption2"].split(" "):
+            ww = text_w(d, word + " ", f)
+            if x + ww > W - 60:
+                x, y = 60, y + lh
+            d.text((x, y), word, font=f, fill=WHITE)
+            x += ww
+        y += lh
+    # karta
+    cy0 = max(y + 50, 380)
+    cy1 = H - 110
+    card = Image.new("RGBA", (W - 2 * 50, cy1 - cy0), tuple(o.get("card_bg", [250, 250, 250])) + (255,))
+    cd = ImageDraw.Draw(card)
+    chars = o.get("chars", [])
+    n = len(chars)
+    for i, c in enumerate(chars):
+        a = Image.open(c["image"]).convert("RGBA")
+        if c.get("flip"):
+            a = a.transpose(Image.FLIP_LEFT_RIGHT)
+        target_h = int((card.height - 20) * c.get("scale", 1.0))
+        r = target_h / a.height
+        a = a.resize((round(a.width * r), target_h), Image.LANCZOS)
+        cx = c.get("x", (i + 0.5) / n)
+        px = int(card.width * cx - a.width / 2)
+        py = card.height - a.height + int(c.get("dy", 0))
+        card.alpha_composite(a, (px, py))
+    for p in o.get("props", []):
+        e = emoji_img(p["emoji"], p.get("size", 140))
+        card.alpha_composite(e, (int(card.width * p["x"] - e.width / 2), int(card.height * p["y"] - e.height / 2)))
+    mask = Image.new("L", card.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=40, fill=255)
+    img.paste(card, (50, cy0), mask)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle((50, cy0, W - 50, cy1), radius=40, outline=GREEN, width=4)
+    # stopka jak v1
+    logo = Image.open(LOGO).convert("RGBA")
+    lh2 = 56
+    logo = logo.resize((int(logo.width * lh2 / logo.height), lh2), Image.LANCZOS)
+    img.alpha_composite(logo, (50, H - 90))
+    hf = font(30, "Medium")
+    tag = o.get("hashtag", "#pracawgamedevie")
+    d.text((W - 50 - text_w(d, tag, hf), H - 80), tag, font=hf, fill=WHITE)
+    return img
+
+
+RENDERERS["classic"] = render_classic
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", required=True)
@@ -285,7 +378,7 @@ if __name__ == "__main__":
     for k in ("image",):
         if o.get(k) and not os.path.isabs(o[k]):
             o[k] = os.path.join(base, o[k])
-    for p in o.get("panels", []):
+    for p in o.get("panels", []) + o.get("chars", []):
         if not os.path.isabs(p["image"]):
             p["image"] = os.path.join(base, p["image"])
     img = RENDERERS[o.get("mode", "scene")](o)
