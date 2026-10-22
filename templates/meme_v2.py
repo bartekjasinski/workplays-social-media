@@ -132,7 +132,7 @@ def footer(img, hashtag="#pracawgamedevie"):
         ld.line([(0, H - bar_h - 60 + i), (W, H - bar_h - 60 + i)], fill=(0, 0, 0, a))
     img.alpha_composite(layer)
     logo = Image.open(LOGO).convert("RGBA")
-    lh = 44
+    lh = 52
     logo = logo.resize((int(logo.width * lh / logo.height), lh), Image.LANCZOS)
     img.alpha_composite(logo, (48, H - bar_h + (bar_h - lh) // 2))
     d = ImageDraw.Draw(img)
@@ -150,7 +150,41 @@ def load_image(path, w, h, mode="cover", bg=WHITE, anchor=0.45):
 # ------------------------------------------------------------------ scene
 def render_scene(o):
     img = Image.new("RGBA", (W, H), BLACK + (255,))
-    scene = load_image(o["image"], W, H, o.get("fit", "cover"), tuple(o.get("bg", WHITE)), o.get("anchor", 0.45))
+    src = Image.open(o["image"])
+    landscape = src.width / src.height > 1.15 and o.get("fit", "auto") == "auto"
+    if landscape:
+        # pozioma scena: caption na ciemnym pasie u góry, obrazek na całą szerokość, caption pod nim
+        d = ImageDraw.Draw(img)
+        # policz wysokość bloku, żeby wyśrodkować go w pionie nad stopką
+        ih = round(W * src.height / src.width)
+        block = ih
+        ft = fb = None
+        if o.get("top"):
+            ft = fit(d, o["top"], W - 120, 72, 44, 3, font_black)
+            block += len(wrap(d, o["top"], ft, W - 120)) * int(ft.size * 1.15) + 30
+        if o.get("bottom"):
+            fb = fit(d, o["bottom"], W - 120, 64, 40, 3, font_black)
+            block += len(wrap(d, o["bottom"], fb, W - 120)) * int(fb.size * 1.15) + 30
+        y = max(48, (H - 86 - block) // 2)
+        if o.get("top"):
+            f = ft
+            lines = wrap(d, o["top"], f, W - 120)
+            for ln in lines:
+                d.text(((W - text_w(d, ln, f)) // 2, y), ln, font=f, fill=WHITE)
+                y += int(f.size * 1.15)
+            y += 30
+        scene = load_image(o["image"], W, ih, "cover")
+        img.alpha_composite(scene, (0, y))
+        y += ih + 30
+        if o.get("bottom"):
+            d = ImageDraw.Draw(img)
+            f = fb
+            for ln in wrap(d, o["bottom"], f, W - 120):
+                d.text(((W - text_w(d, ln, f)) // 2, y), ln, font=f, fill=WHITE)
+                y += int(f.size * 1.15)
+        footer(img, o.get("hashtag", "#pracawgamedevie"))
+        return img
+    scene = load_image(o["image"], W, H, "cover" if o.get("fit", "auto") == "auto" else o["fit"], tuple(o.get("bg", WHITE)), o.get("anchor", 0.45))
     img.alpha_composite(scene)
     if o.get("top"):
         # lekkie zaciemnienie góry, żeby biały tekst czytał się na jasnej scenie
