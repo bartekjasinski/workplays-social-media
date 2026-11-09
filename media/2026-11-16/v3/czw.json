@@ -1,0 +1,4 @@
+{"theme":"achievements","caption":"Kiedy czytasz ogłoszenie i zbierasz *red flagi* jak achievementy",
+ "toasts":[{"title":"„Jesteśmy jak rodzina”","note":"+50 do czujności"},{"title":"„Dynamiczne środowisko”","note":"+50"},{"title":"„Elastyczne godziny, też w weekendy”"}],
+ "footer":"3/3 · NAGRODA: CRUNCH",
+ "mascot":{"image":"../assets/npc_weronika.png","height":560,"x":0.82,"bottom":40}}
