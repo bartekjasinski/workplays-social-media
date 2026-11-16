@@ -1,0 +1,17 @@
+{
+ "theme": "tabs",
+ "question": "Co najbardziej zniechęca Cię do aplikowania na ofertę?",
+ "options": [
+  "Brak widełek w ofercie",
+  "Formularz na 20 minut",
+  "Wymagania z kosmosu",
+  "Cisza po wysłaniu CV"
+ ],
+ "cta": "A Ty? Napisz numer w komentarzu",
+ "url": "workplays.it/oferty",
+ "mascot": {
+  "image": "assets/boss_smirk.png",
+  "size": 230,
+  "frac": 0.56
+ }
+}

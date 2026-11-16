@@ -1,0 +1,56 @@
+{
+ "theme": "inbox",
+ "caption": "Kiedy odmowa przyszła szybciej niż potwierdzenie, że CV doszło",
+ "rows": [
+  {
+   "letter": "S",
+   "from": "noreply@studio",
+   "subject": "Potwierdzamy otrzymanie Twojej aplikacji",
+   "preview": "Odezwiemy się w ciągu 14 dni roboczych…",
+   "time": "00:14",
+   "unread": true,
+   "color": [
+    154,
+    132,
+    255
+   ]
+  },
+  {
+   "letter": "S",
+   "from": "noreply@studio",
+   "subject": "Re: Junior Game Designer – niestety",
+   "preview": "Zdecydowaliśmy się na innych kandydatów…",
+   "time": "23:59",
+   "highlight": true,
+   "color": [
+    255,
+    122,
+    89
+   ]
+  },
+  {
+   "letter": "Ja",
+   "from": "Ja",
+   "subject": "Aplikacja: Junior Game Designer",
+   "preview": "W załączniku CV i portfolio",
+   "time": "23:58",
+   "color": [
+    46,
+    160,
+    86
+   ]
+  }
+ ],
+ "stamp": "CZAS CZYTANIA CV: 0 S",
+ "stamp_pos": [
+  330,
+  1060
+ ],
+ "stamp_angle": 8,
+ "mascot": {
+  "image": "assets/sad_employee.png",
+  "height": 700,
+  "x": 0.82,
+  "cut": 200
+ }
+}
