@@ -135,27 +135,26 @@ def czw(out):
 
 # ------------------------------------------------------------------ PT: słoneczny żółty + brzoskwinia, promienie
 def pt(out):
-    src = os.path.join(GEN, "pt-miecz-1.png")
+    src = os.path.join(GEN, "pt-miecz-2.png")
     img = vgrad(W, H, (255, 246, 214), (255, 214, 196))
     lay = Image.new("RGBA", (W, H), (0, 0, 0, 0)); ld = ImageDraw.Draw(lay)
-    cx, cy = 600, 760
+    cx, cy = 540, 760
     for i in range(24):
         a0 = i * 2 * math.pi / 24; a1 = a0 + math.pi / 24
         ld.polygon([(cx, cy), (cx + 1600 * math.cos(a0), cy + 1600 * math.sin(a0)), (cx + 1600 * math.cos(a1), cy + 1600 * math.sin(a1))], fill=(255, 196, 61, 55))
     img = Image.alpha_composite(img, lay)
     capy = caption(img, "Kiedy w CV piszesz „6 lat zarządzania zespołem”, a chodzi o gildię w MMO", (110, 30, 40), start=56)
-    q = quad_of(src, box=(300, 1320, 740, 1700))
-    sw, sh = 400, 340
+    q = quad_of(src, box=(1080, 1450, 1480, 1780))
+    sw, sh = 400, 324
     cv = Image.new("RGBA", (sw, sh), (0, 0, 0, 0)); d = ImageDraw.Draw(cv)
-    d.text((30, 4), "CV", font=pop(64, "Bold"), fill=(110, 30, 40))
-    d.text((30, 96), "Lider zespołu", font=pop(42, "Bold"), fill=(30, 30, 40))
-    d.text((30, 156), "6 lat · 40 osób", font=pop(38, "Medium"), fill=(60, 60, 70))
-    d.text((30, 220), "Firma: gildia", font=pop(34, "Regular"), fill=(110, 110, 120))
-    d.text((30, 266), "„Smocze Kebaby”", font=pop(34, "Bold"), fill=(220, 50, 50))
+    d.text((24, 30), "CV", font=pop(60, "Bold"), fill=(110, 30, 40))
+    d.text((24, 116), "Lider zespołu", font=pop(42, "Bold"), fill=(30, 30, 40))
+    d.text((24, 174), "40 osób · 6 lat", font=pop(38, "Medium"), fill=(60, 60, 70))
+    d.text((24, 238), "„Smocze Kebaby”", font=pop(36, "Bold"), fill=(220, 50, 50))
     fig = put_on_card(cutout(src), q, cv, inset=0.04)
-    img = place(img, fig, 1000, 600, 40)
-    pill(img, (40, capy + 110), "+100 do charyzmy", (110, 30, 40), (255, 214, 120), 30, -7)
-    pill(img, (820, capy + 560), "HR: ?", (255, 255, 255), (110, 30, 40), 34, 8)
+    img = place(img, fig, 1060, 540, 30)
+    pill(img, (650, capy + 70), "+100 do charyzmy", (110, 30, 40), (255, 214, 120), 30, 6)
+    pill(img, (60, capy + 640), "HR: ?", (255, 255, 255), (110, 30, 40), 34, 8)
     footer(img, (110, 30, 40), (255, 214, 120))
     img.convert("RGB").save(out)
 
